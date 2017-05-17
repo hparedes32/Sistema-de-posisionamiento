@@ -1,0 +1,846 @@
+<%@ Page Language="C#" AutoEventWireup="true" CodeFile="generar_facturas_electronica.aspx.cs" Inherits="generar_facturas_electronica" %>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!--#include file="../../Configuracion/conectar.aspx"-->
+<!--#include file="../../Configuracion/funciones_javascript.aspx"-->
+<head id="Head1" runat="server">
+    <title></title>
+    <link rel="shortcut icon" href="../../Imagenes/icono.ico" /> 
+    <script type="text/javascript">
+		function connXML(url,vopt) {
+				
+                http_request = false;
+				opt=vopt
+
+                if (window.XMLHttpRequest) { // Mozilla, Safari,...
+                    http_request = new XMLHttpRequest();
+                    if (http_request.overrideMimeType) {
+                        http_request.overrideMimeType('text/xml');
+                    }
+                } else if (window.ActiveXObject) { // IE
+                    try {
+                      http_request = new ActiveXObject("Microsoft.XMLHTTP");
+                        } catch (e) {}
+                 }
+
+                if (!http_request) {
+                    alert('Giving up :( Cannot create an XMLHTTP instance');
+                    return false;
+                }
+                http_request.onreadystatechange = alertContents;
+                http_request.open('GET', url, false);
+                http_request.send(null);
+
+            }
+
+            function alertContents()
+            {
+                if (http_request.readyState == 4)
+                {//alert("http_request.status:"+http_request.status+" opt:"+opt)
+                    if (http_request.status == 200)
+                    {
+                        var xmldoc="";
+                        if(window.ActiveXObject)
+                        {
+                            xmldoc = new ActiveXObject("msxml.domdocument");
+			                xmldoc.loadXML(http_request.responseText);
+                        }
+                        else
+                        {
+                            if(window.XMLHttpRequest)
+                            {
+                                xmldoc=new XMLHttpRequest();
+				                xmldoc=http_request.responseXML;				
+                            }
+                        }						
+						switch (opt)
+						{
+    						case "C"://controlo existencia de comprobante
+								if (xmldoc.getElementsByTagName('RES').item(0).firstChild.data != "-1")
+								{
+									form_cuotas_individuales.method="POST";
+							    	form_cuotas_individuales.action="cuotas_cursos.aspx?etapa=A"
+									form_cuotas_individuales.submit();
+								}
+								else
+								{
+									alert("Ya existe un comprobante cargado con ese numero y talonario.Controle\n\n\nPara confirmar el nuevo numero de comprobante pulse ENTER en Talonario")
+									document.getElementById("txt_id_talonario").focus()
+									document.getElementById("txt_id_talonario").select()
+								}
+							break;							
+						}				
+                    }
+                    else
+                    {
+						alert('Ocurrio un Problema, Por Favor Ingrese Nuevamente.');
+                    }
+                }        
+            }
+		
+		
+		function Aceptar()
+		{
+			var requeridos="id_talonario,fecha,dia_vencimiento"
+			var respuesta_confirmar=Controlar_requeridos(requeridos)
+			if(respuesta_confirmar=="")
+			{
+				var chk_chekeados=""
+				
+				for(var i=1;i<13;i++)
+		        {
+					if(document.getElementById("chk_"+i).checked)
+					{
+						chk_chekeados+=i+",";
+					}
+				}
+				//alert(chk_chekeados)
+				if(chk_chekeados!="")
+				{
+					if(parseInt(document.getElementById("txt_cantidad_conceptos").value)>0)
+					{
+						form_cuotas_individuales.method="POST";
+				    	form_cuotas_individuales.action="generar_facturas_electronica.aspx?etapa=A"
+						form_cuotas_individuales.submit();
+					}
+					else
+					{
+						alert("Debe seleccionar un CONCEPTO a facturar.")
+						var iframe = document.getElementById('frm_detalle');
+						iframe.contentWindow.document.getElementById('txt_id_articulo').focus();
+					}	
+				}
+				else
+				{
+					alert("Debe seleccionar al menos un mes para generar el pedido")
+				}
+			}
+			else
+			{
+				alert("Falta Un Campo Requerido: "+respuesta_confirmar.replace(/_/g,' ').toUpperCase()+". Por Favor Controle")
+				document.getElementById("txt_"+respuesta_confirmar).focus(); 
+			}	
+		}
+		
+		function Buscar(leyenda,opcion,proximo,texto_buscar)
+		{
+			try
+			{
+				var titulo=leyenda;
+				var proximo_elemento=proximo
+				if(opcion=="" || opcion==undefined || opcion==null)
+				{
+					document.getElementById("txt_titulo").value=""
+					document.getElementById("txt_proximo_elemento").value=""
+				}
+				else
+				{
+					titulo=document.getElementById("txt_titulo").value
+					proximo_elemento=document.getElementById("txt_proximo_elemento").value
+				}
+				document.getElementById("div_buscador").style.width=(60*parseInt(screen.width)/100)+"px"
+				document.getElementById("div_buscador").style.marginTop=-((45*parseInt(screen.width)/200))+"px"
+				document.getElementById("div_buscador").style.height=(60*parseInt(screen.height)/100)+"px"
+				document.getElementById("div_buscador").style.marginLeft=-((100*parseInt(screen.height)/100)/2)+"px"
+				document.getElementById("frame_buscador_detalle").style.height=(45*parseInt(screen.height)/100)+"px"
+				document.getElementById("txt_dato").style.width=(30*parseInt(screen.width)/100)+"px"
+				var lbl_titulo_buscador=document.getElementById("lbl_titulo_buscador")
+				lbl_titulo_buscador.innerText="BUSCAR "+titulo
+				var tabla="";
+				var campos_mostrar="";
+				var leyenda_campos_mostrar="";
+				var campos_devolver="";
+				var campos_buscar="";
+				var tabla_relacionada="";
+				var id_tabla_relacionada="";
+				var v_where="";
+				var url="";
+				if(texto_buscar!="" && texto_buscar!=null && texto_buscar!=undefined)
+				{
+					document.getElementById("txt_dato").value=texto_buscar
+				}
+				switch(titulo)
+				{
+					case "TALONARIO":
+						tabla="vta_talonarios";
+						campos_mostrar="id_talonario,nombre,id_tipo_comprobante,tipo,sucursal,proximo";
+						leyenda_campos_mostrar="Cod.Talonario,NOMBRE,TIPO comp.,letra,SUCURSAL,PROX.NRO";
+						campos_devolver="id_talonario,nombre,id_tipo_comprobante,tipo,sucursal,proximo";
+						campos_buscar="id_talonario,nombre"
+						v_where=" AND id_tipo_comprobante='FAC' "
+						document.getElementById("frame_buscador_detalle").src="../../configuracion/frame_buscador_detalles.aspx?tabla="+tabla+"&campos_mostrar="+campos_mostrar+"&leyenda_campos_mostrar="+leyenda_campos_mostrar+"&campos_devolver="+campos_devolver+"&texto_buscar="+document.getElementById("txt_dato").value+"&campos_buscar="+campos_buscar+"&v_where="+v_where
+					break;
+					case "ALUMNO":
+						tabla="alu_alumnos";
+						campos_mostrar="id_alumno,nombre,legajo";
+						leyenda_campos_mostrar="DNI,Nombre Alumno,Nro Legajo";
+						campos_devolver=campos_mostrar;
+						campos_buscar=campos_mostrar
+						document.getElementById("frame_buscador_detalle").src="../../configuracion/frame_buscador_detalles.aspx?tabla="+tabla+"&campos_mostrar="+campos_mostrar+"&leyenda_campos_mostrar="+leyenda_campos_mostrar+"&campos_devolver="+campos_devolver+"&texto_buscar="+document.getElementById("txt_dato").value+"&campos_buscar="+campos_buscar
+					break;
+					case "ARTICULO":
+						tabla="stk_articulos";
+						campos_mostrar="stk_articulos.id_articulo,descripcion,vta_precios.importe";
+						leyenda_campos_mostrar="Cod.Articulo,Descripcion,Precio";
+						campos_devolver="id_articulo,descripcion,importe";
+						campos_buscar="stk_articulos.id_articulo,descripcion"
+						tabla_relacionada="vta_precios";
+						id_tabla_relacionada="id_articulo";
+						v_where=" AND id_precio_lista="+document.getElementById("txt_id_precio_lista").value
+						
+						url="../../configuracion/frame_buscador_detalles.aspx?tabla="+tabla+"&campos_mostrar="+campos_mostrar+"&leyenda_campos_mostrar="+leyenda_campos_mostrar
+						url+="&campos_devolver="+campos_devolver+"&texto_buscar="+document.getElementById("txt_dato").value+"&campos_buscar="+campos_buscar+"&nombre_frame=frm_detalle"
+						url+="&tabla_relacionada="+tabla_relacionada+"&id_tabla_relacionada="+id_tabla_relacionada+"&v_where="+v_where
+						document.getElementById("frame_buscador_detalle").src=url
+					break;
+				}
+				document.getElementById("txt_titulo").value=titulo
+				document.getElementById("txt_proximo_elemento").value=proximo_elemento
+				document.getElementById("div_buscador").style.visibility="visible"
+				document.getElementById("txt_dato").focus();
+				document.getElementById("txt_dato").select();
+			}
+			catch(e)
+			{alert(e)}
+		}
+		
+		function ver_detalles()
+		{
+			document.getElementById("frm_detalle").src="frame_comprobantes_detalles.aspx?id_cliente="+document.getElementById("txt_id_cliente").value
+		}
+	
+    </script>
+</head>
+<body style="margin:0px;padding:0px;outline: 0;height:100%;">
+	<form id="form_cuotas_individuales" name="form_cuotas_individuales" runat="server">
+	<%
+	string conexion = (string)Session["ConnectionStringGestion"];//es la conexion a la bd de la empresa   
+	System.Data.SqlClient.SqlConnection acceso = new System.Data.SqlClient.SqlConnection(conexion);             //LOS PANES Q CONTENDRAN LOS MODULOS,GRUPOS Y SECCIONES
+	System.Data.SqlClient.SqlCommand rs = new System.Data.SqlClient.SqlCommand();
+	rs.Connection = acceso;
+	rs.CommandType = System.Data.CommandType.Text;
+	
+	System.Data.SqlClient.SqlConnection acceso2 = new System.Data.SqlClient.SqlConnection(conexion);             //LOS PANES Q CONTENDRAN LOS MODULOS,GRUPOS Y SECCIONES
+	System.Data.SqlClient.SqlCommand rs2 = new System.Data.SqlClient.SqlCommand();
+	rs2.Connection = acceso2;
+	rs2.CommandType = System.Data.CommandType.Text;
+	
+	string id_talonario="";
+	string id_tipo_comprobante="";
+	string nro_comprobante="";
+	string id_comprobante="";
+	string id_alumno="";
+	string dia_vencimiento="10";
+	string fecha_pedido=DateTime.Now.ToString().Substring(0,10);
+	string mes_periodo=DateTime.Now.Month.ToString();
+	string anio_periodo=DateTime.Now.Year.ToString();
+	string bonificacion_pedido="0";
+	string observacion="CUOTA ";
+	string nombre_alumno="";
+	string mensaje_error="";
+	string id_01="";
+	string nro_doc_tutor="";
+	System.Data.SqlClient.SqlParameter fecha = rs.Parameters.Add("@FECHA", System.Data.SqlDbType.DateTime);
+	fecha.Value=DateTime.Now;
+	
+	System.Data.SqlClient.SqlParameter vencimiento = rs.Parameters.Add("@VENCIMIENTO", System.Data.SqlDbType.DateTime);
+	vencimiento.Value=DateTime.Now;
+	
+	bool hubo_error=false;
+	int i=1;
+	
+	switch(Request.QueryString["etapa"])
+    {
+		case "A" :
+		
+			id_talonario=Request.Form["txt_id_talonario"];
+			id_tipo_comprobante=Request.Form["txt_id_tipo_comprobante"];
+			nro_comprobante="FE00000000000";//Request.Form["txt_nro_comprobante"];
+			id_01=Request.Form["txt_id01"];
+			dia_vencimiento=Request.Form["txt_dia_vencimiento"];
+			fecha_pedido=Request.Form["txt_fecha"];
+			mes_periodo=Request.Form["txt_mes_periodo"];
+			anio_periodo=Request.Form["txt_anio_periodo"];
+			bonificacion_pedido="";//Request.Form["txt_bonificacion"];
+			observacion=Request.Form["txt_observacion"];
+			//nombre_alumno=Request.Form["txt_nombre"];
+			
+			rs2.CommandText = "SELECT alu_alumnos_inscripciones.id_alumno,dni_tutor,cuil_tutor FROM alu_alumnos_inscripciones ";
+			rs2.CommandText += " INNER JOIN ALU_ALUMNOS ON ALU_ALUMNOS.ID_ALUMNO=alu_alumnos_inscripciones.ID_ALUMNO ";
+			rs2.CommandText += " WHERE alu_alumnos_inscripciones.id01='"+id_01+"' and alu_alumnos_inscripciones.id_ciclo_lectivo="+DateTime.Now.Year;
+			acceso2.Open();
+			if (rs2.ExecuteScalar() != null)
+            {
+            	System.Data.SqlClient.SqlDataReader reader_alumnos_inscriptos = rs2.ExecuteReader();
+                do
+                {
+                   	while (reader_alumnos_inscriptos.Read())
+					{
+						if(reader_alumnos_inscriptos["dni_tutor"].ToString()!="")
+						{
+							nro_doc_tutor=reader_alumnos_inscriptos["dni_tutor"].ToString();
+						}
+						else
+						{
+							if(reader_alumnos_inscriptos["cuil_tutor"].ToString()!="")
+							{
+								nro_doc_tutor=reader_alumnos_inscriptos["cuil_tutor"].ToString();
+							}
+							else
+							{
+								nro_doc_tutor="-1";
+							}
+						}
+						bonificacion_pedido="";
+						id_alumno=reader_alumnos_inscriptos["id_alumno"].ToString();
+						
+						//controlo si el alumno tiene bonificacion
+						rs.CommandText = "SELECT porcentaje_bonificacion FROM alu_grupo_familiar WHERE id_alumno='"+id_alumno+"'";
+					    acceso.Open();
+					    try
+						{
+							bonificacion_pedido=rs.ExecuteScalar().ToString();
+						}
+						catch{}
+					    acceso.Close();
+						if(bonificacion_pedido=="" || bonificacion_pedido==null)
+						{
+							rs.CommandText = "SELECT bonificacion FROM alu_alumnos WHERE id_alumno='"+id_alumno+"'";
+					    	acceso.Open();
+						    try
+							{
+								bonificacion_pedido=rs.ExecuteScalar().ToString();
+							}
+							catch{}
+					    	acceso.Close();
+						}
+	
+						if(bonificacion_pedido=="" || bonificacion_pedido==null)
+						{
+							bonificacion_pedido="0";
+						}
+						
+						i=1;
+						while(i<13)
+						{
+							if(Request.Form["chk_"+i]=="on")
+							{
+								//controlo si es que ya hay una factura para ese periodo
+								rs.CommandText = "select vta_comprobantes.numero,vta_comprobantes.importe from vta_comprobantes ";
+								rs.CommandText += " inner join vta_comprobantes_detalles on vta_comprobantes_detalles.id_comprobante=vta_comprobantes.id_comprobante";
+								rs.CommandText += " where vta_comprobantes.id_cliente='"+id_alumno+"' and vta_comprobantes.id_talonario="+Request.Form["txt_id_talonario"]+" and vta_comprobantes.mes="+i+" and vta_comprobantes.anio="+Request.Form["txt_anio_periodo"];
+								rs.CommandText += " and id_estado<>'ANU' and id_articulo IN (select id_articulo  FROM vta_tmp_pedidos_detalles ";
+								rs.CommandText += " WHERE id_cliente='"+Request.Form["txt_id01"]+"' AND id_usuario="+(int)Session["id_usuario"]+") ";
+								acceso.Open();
+								if (rs.ExecuteScalar() != null)
+					    		{//existe un comprobante para facturar en ese periodo con ese concepto
+									acceso.Close();
+									hubo_error=true;
+									mensaje_error+="-Existe un comprobante para el alumno: <b>"+id_alumno+"</b> en el periodo <b>"+i+"/"+Request.Form["txt_anio_periodo"]+"</b> con facturacion del codigo ingresado.<br>Para volver a facturarle al alumno ese concepto, debe previamente eliminar/anular el comprobante existente.<br><br>";
+								}
+								else
+								{//no existe un comprobante para facturar en ese periodo con ese concepto
+									acceso.Close();
+									observacion="CUOTA "+DateTime.Parse("01/"+i+"/"+DateTime.Parse(Request.Form["txt_fecha"]).Year.ToString()).ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-ES")).ToUpper();
+							
+									rs.CommandText = "SET NOCOUNT ON;INSERT INTO vta_comprobantes(id_tipo_comprobante, numero, id_cliente, fecha, id_condicion_vta";
+									rs.CommandText += ", id_tipo_asiento, id_precio_lista, id_vendedor, sucursal, id_usuario, contabilizado";
+        	              			rs.CommandText += ", id_estado, importe, importe_exento, importe_gravado, importe_iva, porcentaje_bonificacion"; 
+            	          			rs.CommandText += ", importe_bonificacion, porcentaje_interes, importe_interes, leyenda,id_talonario, mes, anio, carga,nro_doc_tutor)";
+									rs.CommandText += "VALUES('FAC','"+nro_comprobante+"','"+id_alumno+"',@FECHA,'"+Request.Form["txt_id_condicion_vta"]+"'";
+									rs.CommandText += ",'"+Request.Form["txt_id_tipo_asiento"]+"','"+Request.Form["txt_id_precio_lista"]+"','"+Request.Form["txt_id_vendedor"]+"','"+Request.Form["txt_id_deposito"]+"',"+(int)Session["id_usuario"]+",'N'";
+									rs.CommandText += ",'TMP',0,0,0,0,"+bonificacion_pedido;
+									rs.CommandText += ",0,0,0,'"+observacion+"',"+Request.Form["txt_id_talonario"]+","+i+","+Request.Form["txt_anio_periodo"]+",GetDate(),'"+nro_doc_tutor+"'";
+									rs.CommandText += ");SELECT @@IDENTITY AS id_nuevo;";
+									fecha.Value=DateTime.Parse(Request.Form["txt_fecha"]);
+									vencimiento.Value=DateTime.Parse(Request.Form["txt_dia_vencimiento"]+"/"+i+"/"+DateTime.Parse(Request.Form["txt_fecha"]).Year.ToString());
+									acceso.Open();
+									try
+									{
+										id_comprobante=rs.ExecuteScalar().ToString();
+										acceso.Close();
+									
+										rs.CommandText = "  UPDATE vta_comprobantes ";
+										rs.CommandText += " SET importe=vta_tmp_pedidos_detalles.sum_precio_uni-(vta_tmp_pedidos_detalles.sum_precio_uni*"+bonificacion_pedido+"/100),importe_gravado=vta_tmp_pedidos_detalles.sum_precio_neto-(vta_tmp_pedidos_detalles.sum_precio_uni*"+bonificacion_pedido+"/100)";
+										rs.CommandText += " ,importe_iva=vta_tmp_pedidos_detalles.sum_precio_iva ";
+										rs.CommandText += " ,importe_bonificacion=(vta_tmp_pedidos_detalles.sum_precio_uni*"+bonificacion_pedido+"/100) ";
+										rs.CommandText += " FROM vta_pedidos as vta_comp, ";
+										rs.CommandText += " (SELECT SUM(precio_uni) AS sum_precio_uni,SUM(precio_neto) AS sum_precio_neto, SUM(precio_iva) AS sum_precio_iva,(SUM(tasa_iva)/COUNT(tasa_iva)) AS t_iva ";
+										rs.CommandText += " FROM vta_tmp_pedidos_detalles ";
+										rs.CommandText += " WHERE id_cliente='"+Request.Form["txt_id01"]+"' AND id_usuario="+(int)Session["id_usuario"]+")vta_tmp_pedidos_detalles ";
+										rs.CommandText += " WHERE id_comprobante="+id_comprobante;
+										acceso.Open();
+										try
+										{
+											rs.ExecuteScalar();
+											acceso.Close();
+											
+											//inserto el detalle
+											rs.CommandText="INSERT INTO vta_comprobantes_detalles(id_comprobante,id_tipo_comprobante, numero, fecha,id_articulo,cantidad,id_deposito,precio_uni,precio_neto,precio_iva,bonificacion,importe_bonificacion,iva,tasa_iva,id_cliente,importe_interes,descripcion_adicional) ";
+											rs.CommandText += " SELECT "+id_comprobante+",'FAC','"+nro_comprobante+"',@FECHA,id_articulo,cantidad,'"+Request.Form["txt_id_deposito"]+"',precio_uni,precio_neto,precio_iva,bonificacion,importe_bonificacion,iva,tasa_iva,'"+id_alumno+"',0,'"+observacion+"' FROM  vta_tmp_pedidos_detalles ";
+											rs.CommandText += " WHERE id_usuario="+(int)Session["id_usuario"]+" AND id_cliente='"+Request.Form["txt_id01"]+"'";
+											acceso.Open();
+											try
+											{
+												rs.ExecuteScalar();
+												acceso.Close();
+												
+												//inserto la cuota
+												rs.CommandText="INSERT INTO vta_comprobantes_cuotas(id_comprobante,id_tipo_comprobante,numero,vencimiento,importe,id_estado,cuotas)";
+												rs.CommandText += "SELECT id_comprobante,id_tipo_comprobante,numero,@VENCIMIENTO,importe,'PEN','1/1' FROM vta_comprobantes";
+												rs.CommandText += " WHERE id_comprobante="+id_comprobante;
+												acceso.Open();
+												try
+												{
+													rs.ExecuteScalar();
+													acceso.Close();
+												}
+												catch(Exception error_insert_cuotas)
+												{
+													acceso.Close();
+													mensaje_error=error_insert_cuotas.ToString();
+													rs.CommandText = "DELETE vta_comprobantes WHERE id_comprobante="+id_comprobante;
+													acceso.Open();
+													rs.ExecuteScalar();
+													acceso.Close();
+													
+													rs.CommandText = "DELETE vta_comprobantes_detalles WHERE id_comprobante="+id_comprobante;
+													acceso.Open();
+													rs.ExecuteScalar();
+													acceso.Close();
+													hubo_error=true;
+												}
+												acceso.Close();	
+											}
+											catch(Exception error_insert_detalles)
+											{
+												mensaje_error=error_insert_detalles.ToString();
+												acceso.Close();
+												rs.CommandText = "DELETE vta_comprobantes WHERE id_comprobante="+id_comprobante;
+												acceso.Open();
+												rs.ExecuteScalar();
+												acceso.Close();
+												hubo_error=true;
+											}
+											acceso.Close();	
+										}
+										catch(Exception error_update)
+										{
+											mensaje_error=error_update.ToString();
+											acceso.Close();
+											rs.CommandText = "DELETE vta_comprobantes WHERE id_comprobante="+id_comprobante;
+											acceso.Open();
+											rs.ExecuteScalar();
+											acceso.Close();
+											hubo_error=true;
+										}
+										acceso.Close();
+									}	
+									catch(Exception error_insert)
+									{
+										mensaje_error=error_insert.ToString();
+										hubo_error=true;
+									}
+									acceso.Close();
+								}
+								acceso.Close();
+							}
+							i++;
+						}
+					}
+                } while (reader_alumnos_inscriptos.NextResult());
+                reader_alumnos_inscriptos.Close();
+			}
+            acceso2.Close();
+		break;
+	}
+	if(!hubo_error)
+	{
+		if(id_talonario!="" && id_talonario!=null)
+		{%>
+			<script>
+				alert("Facturas Generadas Exitosamente")
+			</script>
+	<%	}
+		id_talonario="";
+		id_tipo_comprobante="";
+		nro_comprobante="";
+		id_comprobante="";
+		id_alumno="-1";
+		dia_vencimiento="10";
+		fecha_pedido=DateTime.Now.ToString().Substring(0,10);
+		mes_periodo=DateTime.Now.Month.ToString();
+		anio_periodo=DateTime.Now.Year.ToString();
+		bonificacion_pedido="0";
+		observacion="CUOTA ";
+		nombre_alumno="";
+	}
+	else
+	{%>
+				<div id="div_error" style=" z-index:1" class="midiv">
+		<table border="0" width="100%" cellpadding="0" cellspacing="0">
+			<tr>
+				<td colspan="3" align="center">
+					<table width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tr>
+							<td align="center">
+							  	<label id="lbl_titulo_buscador" class="label_facebook" style="font-size:16px;font-weight:bold">ERROR !!!!</label>
+							</td>
+							<td align="right" width="10%"><img alt="Cerrar" title="Cerrar(Esc)" src="../../Imagenes/flechas/close_over.png" style="cursor:pointer" onclick="document.getElementById('div_error').style.visibility='hidden';"></td>				
+						</tr>
+					 </table>
+				 </td>		
+			     </tr>
+			     <tr><td colspan="3"><hr></td></tr>						                                        			                                        
+			     <tr>
+			     	<td align="left"><label id="lbl_error" style="color:red;font-size:13px"><%=mensaje_error%></label></td>
+			     </tr>
+			</table>   
+	</div>
+	<script>
+		document.getElementById("div_error").style.width=(60*parseInt(screen.width)/100)+"px"
+		document.getElementById("div_error").style.marginTop=-((45*parseInt(screen.width)/200))+"px"
+		document.getElementById("div_error").style.height=(60*parseInt(screen.height)/100)+"px"
+		document.getElementById("div_error").style.marginLeft=-((100*parseInt(screen.height)/100)/2)+"px"
+	</script>
+<%	}
+
+	rs.CommandText = "DELETE vta_tmp_pedidos_detalles WHERE id_usuario="+(int)Session["id_usuario"];
+	acceso.Open();
+	rs.ExecuteScalar();
+	acceso.Close();
+	%>
+	<table width="100%" border="0" cellspacing="0" cellpadding="0" align="center">
+		<tr>									
+			<td align="left" valign="top" style="border-style: solid none solid none; border-width: 1px; border-color: #C0C0C0;vertical-align: top; width: 100%;background-color:#FAFAFA;padding-top:2px;padding-bottom:2px">
+				&nbsp;<img alt="informacion" src="../../imagenes/notes_24.png"><label class="label_facebook" style="font-size:16px;font-weight:bold">GENERACION DE FACTURA POR CURSOS / FACTURA ELECTRONICA POR LOTES</label>
+				<input type="hidden" id="txt_titulo" name="txt_titulo" value="">
+					<input type="hidden" id="txt_proximo_elemento" name="txt_proximo_elemento" value="">
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<table width="80%" border=0>
+					<tr>
+						<td align="right"><label class="label_facebook">Talonario</label></td>
+						<td >
+							<select id="txt_id_talonario" name="txt_id_talonario" class="input_login" onkeydown="siguiente('txt_mes_periodo',event);">
+							<%
+							rs.CommandText = "SELECT TOP(1) * FROM vta_talonarios WHERE id_tipo_comprobante='FAC' order by nombre";
+    						acceso.Open();
+						    if (rs.ExecuteScalar() != null)
+					    	{
+						   		System.Data.SqlClient.SqlDataReader reader_talonario= rs.ExecuteReader();
+						       	do
+    						   	{
+									while (reader_talonario.Read())
+									{
+										id_talonario=reader_talonario["id_talonario"].ToString();%>
+										<option value="<%=reader_talonario["id_talonario"].ToString()%>"><%=reader_talonario["nombre"].ToString()%></option>
+								<%		
+									}
+								} while (reader_talonario.NextResult());
+					    	    reader_talonario.Close();
+							}
+							acceso.Close();
+							%>
+							</select>
+						</td>	
+						<td align="right"><label class="label_facebook">Periodo</label></td>
+						<td >
+							<input type="text" size="2" id="txt_mes_periodo" name="txt_mes_periodo" class="input_login" value="<%=mes_periodo%>" onkeydown="siguiente('txt_anio_periodo',event);">
+							-<input type="text" size="5" id="txt_anio_periodo" name="txt_anio_periodo" class="input_login" value="<%=anio_periodo%>" onkeydown="siguiente('txt_fecha',event);"><label class="label_obligatorio">*</label>
+						</td>	
+					</tr>
+					<tr>
+						<td align="right"><label class="label_facebook">Fecha</label></td>
+						<td >
+							<input type="text" size="8" id="txt_fecha" name="txt_fecha" class="input_login" value="<%=fecha_pedido%>" onkeypress="FormataDataHora(this)" onkeydown="siguiente('txt_dia_vencimiento',event);"><label class="label_obligatorio">*</label>
+						</td>
+						<td align="right"><label class="label_facebook">D&iacute;a de Vencimiento</label></td>
+						<td >
+							<input type="text" size="2" id="txt_dia_vencimiento" name="txt_dia_vencimiento" class="input_login" value="<%=dia_vencimiento%>" onkeydown="siguiente('txt_id01',event);"><label class="label_obligatorio">*</label>
+						</td>
+					</tr>
+					<tr>
+						<td align="right"><label class="label_facebook">Grado/Curso</label></td>
+						<td colspan="4">
+							<select id="txt_id01" name="txt_id01" class="input_login" onkeydown="siguiente('txt_id_condicion_vta',event);">
+								<%
+                            rs.CommandText = "SELECT alu_cursos.*,alu_niveles.nombre AS nombre_nivel FROM alu_cursos ";
+                            rs.CommandText += " INNER JOIN alu_niveles ON alu_niveles.id_nivel=alu_cursos.id_nivel ";
+							rs.CommandText += "ORDER BY orden";
+							string v_id_curso="";
+							string v_nombre_nivel="";
+                            acceso.Open();
+                            if (rs.ExecuteScalar() != null)
+                            {
+                                System.Data.SqlClient.SqlDataReader reader_cursos = rs.ExecuteReader();
+                                do
+                                {
+                                    while (reader_cursos.Read())
+                                    {   
+										if(v_nombre_nivel!=reader_cursos["id_nivel"].ToString())
+										{
+											v_nombre_nivel=reader_cursos["id_nivel"].ToString();%>
+											<optgroup label="NIVEL <%=reader_cursos["nombre_nivel"].ToString()%>">
+										<%}
+									%>
+                                         <option value="<%=reader_cursos["id01"].ToString()%>" title="<%=reader_cursos["id01"].ToString()%>"><%=reader_cursos["nombre"].ToString()%></option>  
+                                      <%
+                                    }
+                                } while (reader_cursos.NextResult());
+                                reader_cursos.Close();
+                            }
+                            acceso.Close();                          
+                                             %>
+							</select>
+						</td>						
+					</tr>
+					<tr>
+						<td align="right"><label class="label_facebook">Meses a Generar</label></td>
+						<td colspan=3>
+							<table width="100%" style="border-style: solid; border-width: 1px; border-color: #C0C0C0;vertical-align: top; width: 100%;">
+								<tr>	
+									<td>
+										<input type="Checkbox" id="chk_1" name="chk_1"><label class="label_facebook">Enero</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_2" name="chk_2"><label class="label_facebook">Febrero</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_3" name="chk_3"><label class="label_facebook">Marzo</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_4" name="chk_4"><label class="label_facebook">Abril</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_5" name="chk_5"><label class="label_facebook">Mayo</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_6" name="chk_6"><label class="label_facebook">Junio</label>
+									</td>
+								</tr>
+								<tr>	
+									<td>
+										<input type="Checkbox" id="chk_7" name="chk_7"><label class="label_facebook">Julio</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_8" name="chk_8"><label class="label_facebook">Agosto</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_9" name="chk_9"><label class="label_facebook">Septiembre</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_10" name="chk_10"><label class="label_facebook">Octubre</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_11" name="chk_11"><label class="label_facebook">Noviembre</label>
+									</td>
+									<td>
+										<input type="Checkbox" id="chk_12" name="chk_12"><label class="label_facebook">Diciembre</label>
+										<script>
+											document.getElementById("chk_<%=mes_periodo%>").checked=true
+										</script>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+					<tr>
+						<td align="right"><label class="label_facebook">Condici&oacute;n Vta</label></td>
+						<td >
+							<select id="txt_id_condicion_vta" name="txt_id_condicion_vta" class="input_login" onkeydown="siguiente('txt_id_deposito',event);">
+								<%
+									rs.CommandText = "SELECT * FROM vta_condiciones_ventas order by nombre";
+								    acceso.Open();
+								    if (rs.ExecuteScalar() != null)
+								    {
+								       	System.Data.SqlClient.SqlDataReader reader_condiciones= rs.ExecuteReader();
+								       	do
+								       	{
+											while (reader_condiciones.Read())
+											{%>
+												<option value="<%=reader_condiciones["id_condicion_venta"].ToString()%>"><%=reader_condiciones["nombre"].ToString()%></option>
+										<%	}
+										} while (reader_condiciones.NextResult());
+								        reader_condiciones.Close();
+									}
+									acceso.Close();%>
+							</select>
+						</td>
+						<td align="right"><label class="label_facebook">Dep&oacute;sito</label></td>
+						<td >
+							<select id="txt_id_deposito" name="txt_id_deposito" class="input_login" onkeydown="siguiente('txt_bonificacion',event);">
+								<%
+									rs.CommandText = "SELECT * FROM stk_depositos order by nombre";
+								    acceso.Open();
+								    if (rs.ExecuteScalar() != null)
+								    {
+								       	System.Data.SqlClient.SqlDataReader reader_depositos= rs.ExecuteReader();
+								       	do
+								       	{
+											while (reader_depositos.Read())
+											{%>
+												<option value="<%=reader_depositos["id_deposito"].ToString()%>"><%=reader_depositos["nombre"].ToString()%></option>
+										<%	}
+										} while (reader_depositos.NextResult());
+								        reader_depositos.Close();
+									}
+									acceso.Close();%>
+							</select>
+						</td>
+						<td align="right"><label class="label_facebook">Bonificaci&oacute;n</label></td>
+						<td >
+							<input type="text" size="2" id="txt_bonificacion" name="txt_bonificacion" class="input_login" value="<%=bonificacion_pedido%>" onkeydown="siguiente('txt_id_precio_lista',event);">%<label class="label_obligatorio">*</label>
+						</td>
+					</tr>
+					<tr>
+						<td align="right"><label class="label_facebook">Lista de Precios</label></td>
+						<td >
+							<select id="txt_id_precio_lista" name="txt_id_precio_lista" class="input_login" onkeydown="siguiente('txt_id_tipo_asiento',event);">
+								<%
+									rs.CommandText = "SELECT * FROM vta_precios_listas order by nombre";
+								    acceso.Open();
+								    if (rs.ExecuteScalar() != null)
+								    {
+								       	System.Data.SqlClient.SqlDataReader reader_listas= rs.ExecuteReader();
+								       	do
+								       	{
+											while (reader_listas.Read())
+											{%>
+												<option value="<%=reader_listas["id_precio_lista"].ToString()%>"><%=reader_listas["nombre"].ToString()%></option>
+										<%	}
+										} while (reader_listas.NextResult());
+								        reader_listas.Close();
+									}
+									acceso.Close();%>
+							</select>
+						</td>
+						<td align="right"><label class="label_facebook">Tipo de Asiento</label></td>
+						<td >
+							<select id="txt_id_tipo_asiento" name="txt_id_tipo_asiento" class="input_login" onkeydown="siguiente('txt_id_vendedor',event);">
+								<%
+									rs.CommandText = "SELECT * FROM vta_tipos_asientos order by nombre";
+								    acceso.Open();
+								    if (rs.ExecuteScalar() != null)
+								    {
+								       	System.Data.SqlClient.SqlDataReader reader_asientos= rs.ExecuteReader();
+								       	do
+								       	{
+											while (reader_asientos.Read())
+											{%>
+												<option value="<%=reader_asientos["id_tipo_asiento"].ToString()%>"><%=reader_asientos["nombre"].ToString()%></option>
+										<%	}
+										} while (reader_asientos.NextResult());
+								        reader_asientos.Close();
+									}
+									acceso.Close();%>
+							</select>
+						</td>
+						<td align="right"><label class="label_facebook">Vendedor</label></td>
+						<td >
+							<select id="txt_id_vendedor" name="txt_id_vendedor" class="input_login" onkeydown="siguiente('txt_observacion',event);">
+								<%
+									rs.CommandText = "SELECT * FROM vta_vendedores order by nombre";
+								    acceso.Open();
+								    if (rs.ExecuteScalar() != null)
+								    {
+								       	System.Data.SqlClient.SqlDataReader reader_vendedores= rs.ExecuteReader();
+								       	do
+								       	{
+											while (reader_vendedores.Read())
+											{%>
+												<option value="<%=reader_vendedores["id_vendedor"].ToString()%>"><%=reader_vendedores["nombre"].ToString()%></option>
+										<%	}
+										} while (reader_vendedores.NextResult());
+								        reader_vendedores.Close();
+									}
+									acceso.Close();%>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<td align="right"><label class="label_facebook">Observaci&oacute;n</label></td>
+						<td colspan=6>
+							<input type="text"  id="txt_observacion" name="txt_observacion" class="input_login" value="<%=observacion%>" onkeydown="var tecla=(document.all)?event.keyCode:event.which;if(tecla==13){var iframe = document.getElementById('frm_detalle');iframe.contentWindow.document.getElementById('txt_id_articulo').focus();}">
+						</td>
+					</tr>							
+				</table>
+			</td>
+		</tr>
+		<tr>
+			<td align="center" style="border-style: solid none none none; border-width: 1px; border-color: #C0C0C0;vertical-align: top; width: 100%;">
+				<iframe id="frm_detalle" name="frm_detalle" src="cuotas_individuales_detalles.aspx?id_cliente=<%=id_alumno%>" class="input_login" frameborder="0" marginheight="0" marginwidth="0" width="95%"></iframe>				
+			</td>
+		</tr>
+		<tr>
+			<td >
+				<table width="100%">
+					<tr>
+						<td><label class="label_obligatorio">*Campos obligatorios</label></td>
+					</tr>
+					<tr>
+						<td align="right">
+						<input type="hidden" id="txt_cantidad_conceptos" name="txt_cantidad_conceptos" value=0>
+				<label class="label_facebook" style="font-size:18px;font-weight:bold">TOTAL&nbsp;$</label><input type="text" id="txt_total" name="txt_total" size="10" value=0 class="input_login" style="text-align:right;font-size:18px;font-weight:bold">
+				<div id="div_buscador" style="visibility:hidden; z-index:1" class="midiv">
+								<table border="0" width="100%" cellpadding="0" cellspacing="0">
+			                    	<tr>
+				                    	<td colspan="3" align="center">
+					                    	<table width="100%" border="0" cellpadding="0" cellspacing="0">
+						                    	<tr>
+							                    	<td align="center">
+								                    	<label id="lbl_titulo_buscador" class="label_facebook" style="font-size:16px;font-weight:bold">BUSCAR TALONARIO</label>
+							                        </td>
+							                        <td align="right" width="10%"><img alt="Cerrar" title="Cerrar(Esc)" src="../../Imagenes/flechas/close_over.png" style="cursor:pointer" onclick="document.getElementById('div_buscador').style.visibility='hidden';"></td>				
+						                        </tr>
+					                        </table>
+				                        </td>		
+			                        </tr>
+			                        <tr><td colspan="3"><hr></td></tr>						                                        			                                        
+			                        <tr>
+			                        	<td align="right"> Dato a buscar:</td>
+			                            <td align="left" colspan=2>
+			                            	&nbsp;&nbsp;<input type="text" id="txt_dato" name="txt_dato" placeholder="" size="40" class="input" onkeydown="var tecla=(document.all)?event.keyCode:event.which;if(tecla==13){Buscar('','2');}"/>
+			                                &nbsp;<img alt="" src="../../Imagenes/flechas/zoom.png" style="cursor:pointer" onmouseover="this.src='../../Imagenes/flechas/zoom_over.png';" onmouseout="this.src='../../Imagenes/flechas/zoom.png';" width="18px" title="Buscar" onclick="Buscar('','2');"/>								            
+			                            </td>
+			                        </tr>
+			                        <tr>
+			                        	<td colspan="3" align="center">
+			                            	<iframe id="frame_buscador_detalle" name="frame_buscador_detalle" src="" class="input" frameborder="0" width="99%" style="margin:0px;padding:0px"></iframe>    
+			                             </td>
+			                        </tr>
+								</table>   
+							</div>
+			</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="2"  align="right" style="border-style: solid none none none; border-width: 1px; border-color: #C0C0C0;vertical-align: top; width: 100%;background-color:#FAFAFA;padding-top:5px;padding-bottom:5px">
+				<input type="button" id="btn_guardar" value="Guardar" class="boton_aceptar" onmouseover="this.className='boton_cancelar'" onmouseout="this.className='boton_aceptar'" onclick="Aceptar()">
+				<input type="button" id="btn_regresar" value="Cancelar" class="boton_cancelar" onclick="location.href='cuotas_individuales.aspx'">&nbsp;&nbsp;								
+			</td>
+		</tr>
+	</table>
+	<script>
+		if ( screen.width > 1366)
+		{
+			document.write("<link rel='Stylesheet' type='text/css' href='../../style/clasebasica_mayor_1024.css' />  ");			
+		}
+		else 
+		{
+			document.write("<link rel='Stylesheet' type='text/css' href='../../style/clasebasica_menor_1024.css' />  ");			
+		}
+		document.getElementById("txt_observacion").style.width=(40*parseFloat(screen.width)/100)+"px";
+		document.getElementById("frm_detalle").style.height=(25*parseFloat(screen.height)/100)+"px";
+		
+		document.getElementById("txt_id_talonario").focus();
+		document.getElementById("txt_id_talonario").select();		
+	</script>
+    </form>
+</body>
+</html>
