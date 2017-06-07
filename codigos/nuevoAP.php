@@ -25,7 +25,7 @@ if($link === false){
 }
  // ejemplo para github
 // Attempt insert query execution
-$sql = "INSERT INTO location (x,y,Map_idMap) VALUES (2,1,1)";
+$sql = "INSERT INTO accesspoint ( mac_addr , Location_idLoc) VALUES (2,1)";
 if(mysqli_query($link, $sql)){
     echo "Records inserted successfully.";
 } else{
