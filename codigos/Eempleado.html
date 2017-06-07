@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="STYLE.css" rel="stylesheet" type="text/css" />
+<title>Procesando</title>
+</head>
+
+<body background="12.jpg">
+<div id="cabecera"><a href=" paginaweb.html"><img src="PORTADA.jpg" align="right" style="width:1300px;"/></a> </div>
+<div style="float:left; height:400px; width:200px"> 
+<ul id="menulist">
+	<br /> <br />
+  <li><a href="insertar.html">Insertar</a> </li><br />
+  <li> <a href="modificar.html"> Modificar</a> </li><br />
+  <li> <a href="eliminar.html"> Eliminar</a></li><br />
+  <li> <a href="buscar.html">Buscar</a></li><br />
+</ul></div>
+<div id="relleno"><br />
+<br />
+<?php
+
+$conexion=mysqli_connect("localhost","root","","restaurant") or die("problemas con la conexion");
+
+$registros= mysqli_query($conexion,"Select * From trabajadores where Nombre='$_REQUEST[Nombre]' and Apellido='$_REQUEST[Apellido]'")or die("No se pudo encontrar el empleado buscado". mysqli_error($conexion));
+
+if($reg=mysqli_fetch_array($registros)){
+?>
+<h3 id="titulo" style="font-size:24px; color:#CC6600; font:Verdana"><u>Ingrese el empleado a dar de baja: </u></h3><br>
+<form action="e1.php" method="post" style="font:Verdana, Arial, Helvetica, sans-serif">
+&nbsp;&nbsp;&nbsp;&nbsp; <strong><font face="Verdana" color="#FFFFFF">Apellido: </font></strong><input type="text" name="Apellido" size="45" maxlength="100"><br><br>
+&nbsp;&nbsp;&nbsp;&nbsp; <strong><font face="Verdana" color="#FFFFFF">Nombre: </font></strong><input type="text" name="Nombre" size="45" maxlength="50"><br><br>
+
+<br><br><br><br>
+
+<input type="submit" value="ELIMINAR" style="background-color:#CC6600; font-size: 24px">
+
+<input type="Reset" value="CANCELAR" style="background-color:#CC6600; font-size:24px">
+</form>
+<?php
+
+	}
+else{
+ echo "NO EXISTE UN EMPLEADO CON ESE NOMBRE";
+ }		
+mysqli_close($conexion);
+?>
+</body>
+</html>

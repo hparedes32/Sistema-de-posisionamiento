@@ -1,0 +1,77 @@
+* {margin:0; padding:0;}
+
+div#menu {
+	width:184px;
+	background:#CC6633;
+	padding-top:44px;
+	color: #CC6633;
+	height:1000px;
+}
+
+div#menubody {
+	padding-left:21px;
+	color: #CC6633;
+}
+
+div#menubottom {
+	height:26px;
+	background: #CC6633url(menu_4.gif) bottom no-repeat;
+	color: #CC6633;
+}
+
+ul#menulist {width:144px; list-style-type:none; height:1000px; padding-top:100px;}
+
+ul#menulist li {
+	height:27px;
+	background:url(menu_3.gif) bottom repeat-x;
+	color: #CC6633;
+	border-right-color:#CC3300;
+}
+
+ul#menulist a {
+	width:150px;
+	height:30px;
+	border-left:#cc3300 10px solid;
+	font:bold 15px Verdana, Arial, sans-serif;
+	color:#000000;
+	text-decoration:none;
+	padding:10px 0 0 15px;
+	display:block !important;
+	display:inline-block;
+	background-color:#FF9966
+}
+
+ul#menulist a:hover {
+	background:url(menu_5.jpg) left repeat-y;
+	color: #CC9966;
+	height:2000px;
+}
+div#titulo {
+	align:center;
+	font: fantasy;
+	font-size:24px;
+	background-color:#CC6633;
+	text-align:center
+    
+}
+div#cabecera{
+	 height:250px;
+	 font: Algerian;
+	 class:Estilo1;
+	 text-align:center;
+	 font-size:36px;
+	 width:1300px;
+	 background-color:#CC6633	}
+	 
+div#relleno{
+ 	float:rigth;
+    height:500px;
+    width:1000px;
+	background-image:url(1.jpg);
+	padding-left:500px; 
+	padding-top:100px;
+	} 
+	
+	
+/* CSS Document */
+
