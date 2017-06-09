@@ -17,25 +17,36 @@
 <?php
 
 
-$link = mysqli_connect('localhost:3306', 'root', '34403853', 'lo53');
- 
-// Check connection
-if($link === false){
-    die("ERROR: Could not connect. " . mysqli_connect_error());
-}
- // ejemplo para github
-// Attempt insert query execution
-$sql = "INSERT INTO location (x,y,Map_idMap) VALUES ($_REQUEST[x],$_REQUEST[y],$_REQUEST[map_idmap])";
-if(mysqli_query($link, $sql)){
-    echo "Records inserted successfully.";
-} else{
-    echo "ERROR: Could not able to execute $sql. " . mysqli_error($link);
-}
- 
-// Close connection
-mysqli_close($link);
+//tomamos los datos del archivo conexion.php  
+include("conexion.php");  
+$link = Conectarse();  
+//se envia la consulta  
+$result = mysql_query("SELECT * FROM map", $link);  
+//se despliega el resultado  
+echo "<table>";  
+echo "<tr>";  
+echo "<th>ID Map</th>";  
+echo "<th>Description</th>";  
+echo "<th>PX With</th>";  
+echo "<th>PX Height</th>";  
+echo "<th>W Width</th>";  
+echo "<th>W Height</th>";
+echo "<th>Content</th>";
+echo "</tr>";  
+while ($row = mysql_fetch_row($result)){   
+    echo "<tr>";  
+	echo "<td>$row[0]</td>";  
+    echo "<td>$row[1]</td>";  
+    echo "<td>$row[2]</td>";  
+    echo "<td>$row[3]</td>";  
+	echo "<td>$row[4]</td>";  
+    echo "<td>$row[5]</td>";  
+    echo "<td>$row[6]</td>";  
+    echo "</tr>";  
+}  
+echo "</table>";
 
-echo "<strong><font color=\"white\" size=\"5\"> Se agrego una nueva localizacion </font></strong>";
+echo "<strong><font color=\"white\" size=\"5\"> Se modifico un mapa </font></strong>";
 ?></div>
 </body>
 </html>
